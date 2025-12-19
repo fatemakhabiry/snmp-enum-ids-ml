@@ -68,19 +68,40 @@ tab_pred, tab_batch, tab_diag, tab_explain, tab_about = st.tabs(
 with tab_pred:
     st.subheader("Single Flow Prediction")
 
-    # Presets
-    c1, c2, c3 = st.columns([1,1,1])
+    # Initialize widget state once
+    if "srcport_val" not in st.session_state:
+        st.session_state.srcport_val = 40000
+        st.session_state.dur_val = 1.5
+        st.session_state.sbytes_val = 500
+        st.session_state.sttl_val = 64.0
+        st.session_state.dttl_val = 128.0
+
+    # Preset buttons
+    c1, c2, c3 = st.columns([1, 1, 1])
+
     with c1:
         if st.button("✅ Load Normal Example"):
-            st.session_state["preset"] = {"srcport": 52000, "dur": 0.05, "sbytes": 142, "sttl": 128.0, "dttl": 128.0}
+            st.session_state.srcport_val = 52000
+            st.session_state.dur_val = 0.05
+            st.session_state.sbytes_val = 142
+            st.session_state.sttl_val = 128.0
+            st.session_state.dttl_val = 128.0
+
     with c2:
         if st.button("🚨 Load Attack Example"):
-            st.session_state["preset"] = {"srcport": 43000, "dur": 2.5, "sbytes": 180000, "sttl": 64.0, "dttl": 64.0}
+            st.session_state.srcport_val = 43000
+            st.session_state.dur_val = 2.5
+            st.session_state.sbytes_val = 180000
+            st.session_state.sttl_val = 64.0
+            st.session_state.dttl_val = 64.0
+
     with c3:
         if st.button("🧹 Reset Inputs"):
-            st.session_state["preset"] = {"srcport": 40000, "dur": 1.5, "sbytes": 500, "sttl": 64.0, "dttl": 128.0}
-
-    preset = st.session_state.get("preset", {"srcport": 40000, "dur": 1.5, "sbytes": 500, "sttl": 64.0, "dttl": 128.0})
+            st.session_state.srcport_val = 40000
+            st.session_state.dur_val = 1.5
+            st.session_state.sbytes_val = 500
+            st.session_state.sttl_val = 64.0
+            st.session_state.dttl_val = 128.0
 
     colA, colB = st.columns([1.1, 1.4])
 
@@ -88,11 +109,12 @@ with tab_pred:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.write("### Enter Flow Features")
 
-        srcport = st.number_input("srcport", 0, 65535, int(preset["srcport"]))
-        dur = st.number_input("dur (seconds)", 0.0, float(preset["dur"]), step=0.01)
-        sbytes = st.number_input("sbytes", 0, int(preset["sbytes"]), step=100)
-        sttl = st.number_input("sttl", 0.0, 255.0, float(preset["sttl"]), step=1.0)
-        dttl = st.number_input("dttl", 0.0, 255.0, float(preset["dttl"]), step=1.0)
+        # IMPORTANT: use key= to bind widget to session_state
+        srcport = st.number_input("srcport", 0, 65535, key="srcport_val")
+        dur = st.number_input("dur (seconds)", 0.0, step=0.1, key="dur_val")
+        sbytes = st.number_input("sbytes", 0, step=100, key="sbytes_val")
+        sttl = st.number_input("sttl", 0.0, 255.0, step=1.0, key="sttl_val")
+        dttl = st.number_input("dttl", 0.0, 255.0, step=1.0, key="dttl_val")
 
         st.caption(f"Using features: {FEATURES}")
         st.markdown('</div>', unsafe_allow_html=True)
@@ -107,22 +129,18 @@ with tab_pred:
 
         proba = model.predict_proba(X_in)[0]
         p_normal, p_attack = float(proba[0]), float(proba[1])
-
         pred_by_threshold = 1 if p_attack >= threshold else 0
 
-        # Metrics cards
         m1, m2, m3 = st.columns(3)
         m1.metric("P(Normal)", f"{p_normal:.2f}")
         m2.metric("P(Attack)", f"{p_attack:.2f}")
         m3.metric("Threshold", f"{threshold:.2f}")
 
-        # Show decision
         if pred_by_threshold == 1:
             st.error("🚨 Final Decision: SNMP Attack (Label = 1)")
         else:
             st.success("✅ Final Decision: Normal (Label = 0)")
 
-        # Probability diagram
         fig, ax = plt.subplots()
         ax.bar(["Normal", "Attack"], [p_normal, p_attack])
         ax.set_ylim(0, 1)
@@ -135,23 +153,6 @@ with tab_pred:
             st.dataframe(X_in)
 
         st.markdown('</div>', unsafe_allow_html=True)
-
-    # Save history
-    if "history" not in st.session_state:
-        st.session_state["history"] = []
-
-    if st.button("💾 Save this prediction to History"):
-        st.session_state["history"].append({
-            **input_row,
-            "p_normal": p_normal,
-            "p_attack": p_attack,
-            "threshold": threshold,
-            "prediction": pred_by_threshold
-        })
-
-    if st.session_state["history"]:
-        st.write("### Prediction History")
-        st.dataframe(pd.DataFrame(st.session_state["history"]))
 
 # =========================================================
 # TAB 2: BATCH CSV PREDICTION
