@@ -4,7 +4,11 @@
 **Course:** Network Security – Network Penetration Testing  
 **Attack Type:** SNMP Enumeration  
 **Deployment:** Local Streamlit Application  
-**Team:** [Add team member names]
+**Team:** 1)fatma ayoub
+          2)mayar waleed
+          3)mariam sherif
+          4)marwa hussein
+          5)noura Essam
 
 ---
 
